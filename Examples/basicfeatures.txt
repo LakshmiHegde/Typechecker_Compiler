@@ -1,0 +1,15 @@
+num fun(num x,num y)
+{
+		num z
+		z= x * y
+		return x+y+z
+}
+
+num z
+num res
+z=10
+res=fun(z, z*z)
+
+return res
+
+

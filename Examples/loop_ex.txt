@@ -1,0 +1,26 @@
+num add(num x,num y, bool test)
+{
+	num res
+	loop(test)
+	{
+		res= x + y
+		test = false
+	}
+	if test then res else res * 2
+	return res
+	z=10
+	return res+2
+}
+
+num z
+num y
+z=10
+y=7
+
+loop(true)
+{
+	num res
+	res=add(z,y,true)
+	y=z
+	z=res
+}

@@ -1,0 +1,15 @@
+num add(num x,num y)
+{
+	return add(x+y , y*x )
+}
+bool call()
+{
+	num z
+	z=10
+
+	add( add(z, z+z) ,  -z)
+	
+	return call()
+}
+
+return call()
