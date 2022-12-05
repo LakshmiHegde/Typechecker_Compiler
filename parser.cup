@@ -1,0 +1,156 @@
+import java_cup.runtime.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.*;
+
+/* Terminals (tokens returned by the scanner). */
+terminal token RET, ASSIGN, PLUS, MINUS, TIMES, LPAREN, RPAREN, COMMA, LFB, RFB, LOOP, IF,ELSE,THEN;
+terminal Integer NUMBER;
+terminal String ID;
+terminal Type TYPE;
+terminal Boolean BOOLCONST;
+
+non terminal Expr     expr, term, factor, funccall;
+non terminal Instruction instr;
+non terminal Program prog;
+non terminal Declaration vardecl; 
+non terminal List<Declaration> parlist, nt_parlist, vardeclseq;
+non terminal FunctionDeclaration fundef;
+non terminal FunctionBody funcbody;
+non terminal List<Expr> arglist, nt_elist;
+non terminal List<FunctionDeclaration> fundeflist;
+non terminal Assign assigninstr;
+non terminal Return retinstr;
+non terminal Block block;
+non terminal Sequence seq;
+non terminal IfCondition ifcond;
+non terminal Loop loop;
+non terminal Subexpr subexpr;
+
+
+prog	   ::= fundeflist:fdl block:b {: RESULT = new Program(fdl,b); :} 
+		
+		;
+
+
+fundeflist ::=  
+               fundeflist:fl fundef:f{: RESULT = fl; RESULT.add(f); :} 
+               |			{: RESULT = new ArrayList<FunctionDeclaration>(); :}
+               ; 
+
+
+block      ::= vardeclseq:vds seq:s {: RESULT= new Block(vds, s); :}
+		|
+		seq:s {: RESULT= new Block(null,s); :}		
+		
+		;
+
+vardeclseq  ::= vardecl:v {: if(RESULT == null)RESULT=new ArrayList<>(); RESULT.add(v); :}
+	        |
+	        vardecl:v vardeclseq:vs {: RESULT=vs; RESULT.add(0,v); :}
+	        ;
+
+vardecl    ::= TYPE:type ID:id {: RESULT= new Declaration(id,type); :} ;
+
+
+seq        ::= instr:i {: if(RESULT == null) RESULT= new Sequence(); RESULT.instr.add(i); :}
+ 	       |
+ 	       instr:i seq:s {: RESULT=s; RESULT.instr.add(0,i);  :}
+ 	       ;
+ 	       
+
+instr      ::=  assigninstr:a {: RESULT= a; :}
+		|
+		retinstr:r {: RESULT= r; :}
+		|
+		loop:l {: RESULT= l; :}
+		|
+		ifcond:i {: RESULT = i; :}
+		|
+		funccall:f {: RESULT=f; :}
+		;
+
+assigninstr ::= ID:id ASSIGN expr:e {: RESULT= new Assign(new IdExpr(id),e);  :};
+
+retinstr   ::= RET expr:e  {: RESULT= new Return(e);  :};
+
+loop	   ::= LOOP LPAREN expr:e RPAREN LFB block:b RFB {: RESULT= new Loop(e,b); :} ;
+
+ifcond	   ::= IF subexpr:e THEN subexpr:e1 ELSE subexpr:e2 {: RESULT = new IfCondition(e,e1,e2); :} ;
+
+subexpr    ::=	expr:e {: RESULT = new Subexpr(e); :}
+		|
+		assigninstr:r {: RESULT = new Subexpr(r); :}
+		;
+ 	       
+fundef     ::= TYPE:type ID:id LPAREN parlist:l RPAREN LFB funcbody:b RFB {: RESULT = new FunctionDeclaration(type,id,l,b); :} ;	
+ 
+ 
+parlist    ::= vardecl:v {: if(RESULT == null) RESULT = new ArrayList<>(); RESULT.add(v); :}
+               | 
+               vardecl:v COMMA nt_parlist:np {: RESULT = np; RESULT.add(0,v); :}
+               | 
+               	{: RESULT = new ArrayList<Declaration>(); :}
+               ;
+               
+nt_parlist ::= vardecl:v {:if(RESULT == null)RESULT=new ArrayList<>(); RESULT.add(v); :} 
+	       | 
+	       vardecl:v COMMA nt_parlist:np {: RESULT = np; RESULT.add(0,v); :}
+	       ;               
+
+
+funcbody   ::= block:b {: RESULT= new FunctionBody(b); :};
+
+ 	
+funccall   ::= ID:id LPAREN arglist:al RPAREN {: RESULT= new FunctionCall(id, al); :};
+
+
+arglist    ::= expr:e {: if(RESULT == null) RESULT=new ArrayList<>(); RESULT.add(e); :}
+               | 
+               expr:e COMMA nt_elist:ne {: RESULT = ne; RESULT.add(0,e); :} 
+               | 		{: RESULT = new ArrayList<Expr>(); :}
+               ;
+               
+               
+nt_elist   ::= expr:e {: if(RESULT == null) RESULT=new ArrayList<>();  RESULT.add(e); :}
+               | 
+               expr:e COMMA nt_elist:ne  {: RESULT=ne; RESULT.add(0,e); :} 
+               ;
+
+ 	              
+expr      ::= 
+              expr:e1 PLUS term:e2    
+	      {: RESULT = new AddExpr(e1, e2); :} 
+	      | 
+              term:e1                  
+	      {: RESULT = e1; :} 
+	      ;
+
+term      ::= term:e1 TIMES factor:e2 
+	      {: RESULT = new MulExpr(e1, e2); :} 
+	      | 
+              factor:e                 
+	      {: RESULT = e; :} 
+	      ;
+
+factor    ::= NUMBER:n                 
+	      {: RESULT = new NumExpr(n);  :} 
+				|
+				      ID:id
+	      {: RESULT = new IdExpr(id);  :} 
+	      | 
+              MINUS factor:e             
+	      {: RESULT = new NegExpr(e);  :} 
+	      | 
+              LPAREN expr:e RPAREN     
+	      {: RESULT = e;  :} 
+	      |
+	      funccall:f {: RESULT =f; :}
+	      |
+	      BOOLCONST:b {: RESULT = new BoolExpr(b); :}
+	      ;
+	      
+
